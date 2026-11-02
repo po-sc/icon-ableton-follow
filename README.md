@@ -4,28 +4,75 @@
 
 Подходит для P1-Nano, P1-X, P1-M, V1-M и V1-X.
 
+**[Скачать последнюю версию](https://github.com/po-sc/icon-ableton-follow/releases/latest)**
+
 ## Установка
 
-Закрой Ableton и выполни в Терминале:
+Перед установкой закрой Ableton. Выбери любой способ, результат будет одинаковый.
+
+Репозиторий приватный, поэтому для любого способа нужен вход в GitHub и доступ к репозитории.
+
+### Способ 1. ZIP из релиза
+
+Самый простой способ.
+
+1. Открой [страницу релиза](https://github.com/po-sc/icon-ableton-follow/releases/latest) и скачай `Icon-V-and-P-Series-Ableton-Script-v1.16-Follow.zip`.
+2. Распакуй архив.
+3. Открой папку для скриптов:
+   - **macOS:** в Finder нажми **Cmd+Shift+G** и вставь `~/Music/Ableton/User Library/Remote Scripts`
+   - **Windows:** `Документы\Ableton\User Library\Remote Scripts`
+   - Если папки `Remote Scripts` нет, создай её.
+4. Скопируй туда папку `Icon_V_and_P_Series_Ableton_Follow`. С экстендерами скопируй ещё `_XT1`, `_XT2` и `_XT3`.
+
+### Способ 2. ZIP кнопкой на GitHub
+
+1. На [главной странице репозитория](https://github.com/po-sc/icon-ableton-follow) нажми **Code → Download ZIP**.
+2. Дальше всё как в способе 1, начиная с шага 2.
+
+Так скачается самое свежее состояние `main`, даже если нового релиза ещё нет.
+
+### Способ 3. Git
+
+Удобно для обновлений. Для macOS:
 
 ```bash
 git clone https://github.com/po-sc/icon-ableton-follow.git
 cd icon-ableton-follow
+mkdir -p ~/Music/Ableton/User\ Library/Remote\ Scripts
 cp -R Icon_V_and_P_Series_Ableton_Follow* ~/Music/Ableton/User\ Library/Remote\ Scripts/
 ```
 
-На Windows после `git clone` скопируй папки `Icon_V_and_P_Series_Ableton_Follow*` в `Документы\Ableton\User Library\Remote Scripts\`.
+На Windows после `git clone` скопируй папки вручную, как в способе 1.
 
-Репозиторий приватный, поэтому нужен доступ к нему и вход в GitHub.
+### Способ 4. GitHub CLI
+
+Скачивает архив релиза из Терминала, если установлен `gh`:
+
+```bash
+gh release download -R po-sc/icon-ableton-follow --pattern '*.zip'
+unzip -q Icon-V-and-P-Series-Ableton-Script-v1.16-Follow.zip
+cd icon-ableton-follow
+mkdir -p ~/Music/Ableton/User\ Library/Remote\ Scripts
+cp -R Icon_V_and_P_Series_Ableton_Follow* ~/Music/Ableton/User\ Library/Remote\ Scripts/
+```
 
 ## Настройка
 
 1. Открой Ableton: **Settings → Link, Tempo & MIDI**.
 2. В первой строке выбери:
    - **Control Surface:** `Icon_V_and_P_Series_Ableton_Follow`
-   - **Input и Output:** порт контроллера, например `iCON P1-Nano (Порт 1)`
+   - **Input и Output:** порт того DAW-слота, в котором будешь работать
 3. Перезапусти Ableton.
-4. На контроллере нажми кнопку **DAW 1**.
+4. На контроллере нажми кнопку этого DAW-слота.
+
+### Какой DAW-слот выбрать
+
+Скрипт работает в любом из трёх слотов. Важно только два условия:
+
+- порт в Ableton совпадает с кнопкой: **DAW 1 = Порт 1**, **DAW 2 = Порт 2**, **DAW 3 = Порт 3** (проверено на P1-Nano);
+- этот слот настроен в iMap на **Ableton Live**.
+
+Если не знаешь, что выбрать, начни с DAW 1 и Порта 1.
 
 Подключай контроллер напрямую к компьютеру, без хаба и USB монитора.
 
@@ -71,7 +118,8 @@ cp -R Icon_V_and_P_Series_Ableton_Follow* ~/Music/Ableton/User\ Library/Remote\ 
 
 ## Обновление
 
-В папке `icon-ableton-follow` выполни:
+- **ZIP:** скачай новый архив и замени им старые папки.
+- **Git:** выполни в папке `icon-ableton-follow`:
 
 ```bash
 git pull
@@ -94,7 +142,7 @@ cp -R Icon_V_and_P_Series_Ableton_Follow* ~/Music/Ableton/User\ Library/Remote\ 
 ## Если не работает
 
 - **Скрипта нет в списке:** проверь, что папка лежит прямо в `Remote Scripts`, и перезапусти Ableton.
-- **Контроллер не реагирует:** проверь кнопку DAW 1 и порт.
+- **Контроллер не реагирует:** проверь, что порт в Ableton совпадает с нажатой кнопкой DAW, а в iMap этот слот настроен на Ableton Live.
 - **Каналы начинаются с девятой дорожки:** скрипт стоит не в первой строке.
 - **Контроллер отключается:** подключи его напрямую к компьютеру.
 - **Нужно вернуть как было:** выбери прежний скрипт в той же строке.
