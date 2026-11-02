@@ -300,7 +300,9 @@ def main():
     for m in cs.sent:
         if len(m) == 3 and m[0] == 0xB0 and 0x40 <= m[1] <= 0x49:
             digits[m[1]] = m[2]
-    expected = {0x49 - i: ord(c) | (0x40 if i in (2, 4, 6) else 0) for i, c in enumerate("0120304056")}
+    # Скрипт шлёт только изменившиеся цифры, до этого было 001.01.01.000
+    expected = {0x49 - i: ord(c) | (0x40 if i in (2, 4, 6) else 0)
+                for i, (c, old) in enumerate(zip("0120304056", "0010101000")) if c != old}
     check("часы: 012.03.04.056", digits == expected, str(digits))
     check("часы: нет двоеточий", 0x3A not in digits.values() and 0x7A not in digits.values())
 
