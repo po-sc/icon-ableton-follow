@@ -87,34 +87,6 @@ def unregister_listeners(ctrl_surface):
     bound.clear()
 '''
 
-README = """iCON V & P Series Ableton Script v1.16 + Follow
-
-Оригинальный скрипт iCON v1.16 (цвета, режимы, экраны, джог, экстендеры) плюс слежение за дорожкой:
-выделил дорожку в Ableton — она становится первой на контроллере, следующие идут за ней.
-Кнопки Bank работают как обычно. На P1-Nano единственный фейдер управляет выбранной дорожкой.
-
-Установка
-1. Закрыть Ableton.
-2. Скопировать нужные папки Icon_V_and_P_Series_Ableton_Follow* в Remote Scripts:
-   macOS:   ~/Music/Ableton/User Library/Remote Scripts/
-   Windows: Documents\\Ableton\\User Library\\Remote Scripts\\
-   Основная папка нужна всегда, _XT1/_XT2/_XT3 — только если есть экстендеры.
-3. Запустить Ableton: Settings → Link, Tempo & MIDI → Control Surface =
-   Icon_V_and_P_Series_Ableton_Follow, Input и Output = порт контроллера (Порт 1).
-   В списке портов для этого порта включить Track, Remote можно выключить.
-
-Если контроллер один: скрипт в первой строке Control Surface, а на контроллере слот DAW 1.
-PDF iCON на macOS советует папку внутри приложения, но User Library тоже работает и не пропадает при обновлении Live.
-
-Цвета дорожек скрипт отправляет на контроллер. Покажет ли их экран, зависит от модели и прошивки:
-для P1-Nano производитель цвета на встроенном экране не заявляет.
-
-Контроллер подключать напрямую к компьютеру: через хаб или USB монитора ему может не хватать питания.
-Настройка iMap (файлы .p1m-daw / .p1n-daw / .v1m-daw) и порядок портов — как в Instruction Ableton.pdf.
-Оригинальный скрипт можно не удалять, но на одном порту должен быть выбран только один.
-"""
-
-
 def read_raw(path):
     # newline="": оригинал в CRLF, правка не должна менять концы строк всего файла
     with open(path, encoding="utf-8", newline="") as f:
@@ -233,7 +205,8 @@ def main():
         for pattern in ("*.p1m-daw", "*.p1n-daw", "*.v1m-daw", "*.pdf"):
             for f in source.glob(pattern):
                 shutil.copy2(f, OUT / f.name)
-    (OUT / "README Follow.txt").write_text(README, encoding="utf-8")
+    shutil.copy2(ROOT / "INSTALL.md", OUT / "INSTALL Follow.txt")
+    shutil.copy2(ROOT / "tools" / "color_test.swift", OUT / "color_test.swift")
 
     output.unlink(missing_ok=True)
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as z:
