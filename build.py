@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""Собирает Follow-версию из официального архива iCON v1.16.
-
-Код iCON в репозитории не хранится: на вход подаётся их архив, на выходе готовый zip.
+"""Собирает Follow-версию из официального архива iCON v1.16 в папку build/.
     python3 build.py Icon-V-and-P-Series-Ableton-Script-v1.16-ZIP.zip
 """
 import argparse, shutil, sys, tempfile, zipfile
@@ -176,6 +174,10 @@ def patch_package(source, name):
           "    if not LC.only_if_changed(\"row_color_rgb\", rgb7_list):\n"
           "        return\n\n", "")
 
+    # Гашение колец ручек шло на адрес 0xB0+i: байт больше 127 в MIDI недопустим, нужен VPOT_OS как в plugin_vpot
+    for name in ("input_vpot.py", "plugin2_vpot.py"):
+        patch(dst / "v1_handlers" / name, "DM._3_BYTE_MSG(ST, AD.VPOT_CC + i, 0x00)", "DM._3_BYTE_MSG(ST, AD.VPOT_OS + i, 0x00)")
+
     # Двоеточие не имеет сегментов и выглядело как чёрточка: формат и точки как у штатного Mackie
     ck = dst / "v1_handlers" / "standard_clock.py"
     patch(ck, "    TEXT = FORMAT_TIME(DM, payload) if _MODE == 'time' else BLANK(FORMAT_BARS(DM.SONG(payload)))\n"
@@ -208,12 +210,11 @@ def patch_package(source, name):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("official_zip", type=Path, help="официальный архив iCON v1.16")
-    ap.add_argument("-o", "--output", type=Path, help="куда положить результат (по умолчанию рядом с архивом)")
     args = ap.parse_args()
-    output = args.output or args.official_zip.with_name("Icon-V-and-P-Series-Ableton-Script-v1.16-Follow.zip")
 
     shutil.rmtree(OUT, ignore_errors=True)
     OUT.mkdir()
+    (OUT / "iMap").mkdir()
     with tempfile.TemporaryDirectory() as tmp:
         source = Path(tmp)
         with zipfile.ZipFile(args.official_zip) as z:
@@ -222,16 +223,8 @@ def main():
             patch_package(source, "Icon_V_and_P_Series_Ableton" + suffix)
         for pattern in ("*.p1m-daw", "*.p1n-daw", "*.v1m-daw", "*.pdf"):
             for f in source.glob(pattern):
-                shutil.copy2(f, OUT / f.name)
-    shutil.copy2(ROOT / "INSTALL.md", OUT / "INSTALL Follow.txt")
-    shutil.copy2(ROOT / "tools" / "color_test.swift", OUT / "color_test.swift")
-
-    output.unlink(missing_ok=True)
-    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as z:
-        for f in sorted(OUT.rglob("*")):
-            if f.is_file():
-                z.write(f, f.relative_to(OUT))
-    print(output, output.stat().st_size)
+                shutil.copy2(f, OUT / "iMap" / f.name)
+    print(OUT)
 
 
 if __name__ == "__main__":

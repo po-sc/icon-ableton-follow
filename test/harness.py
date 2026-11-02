@@ -306,6 +306,26 @@ def main():
     check("часы: 012.03.04.056", digits == expected, str(digits))
     check("часы: нет двоеточий", 0x3A not in digits.values() and 0x7A not in digits.values())
 
+    # 9h. Кнопка SMPTE/Beats: время 00:01:02:03, обратно такты
+    SONG.get_current_smpte_song_time = lambda m: "00:01:02:03"
+    cs.sent.clear(); cs.receive_midi((0x90, 0x35, 127)); tick(cs)
+    digits = {m[1]: m[2] for m in cs.sent if len(m) == 3 and m[0] == 0xB0 and 0x40 <= m[1] <= 0x49}
+    expected = {0x49 - i: ord(c) | (0x40 if i in (2, 4, 6) else 0)
+                for i, (c, old) in enumerate(zip("0000102003", "0120304056")) if c != old}
+    check("часы SMPTE: 000.01.02.003", digits == expected, str(digits))
+    check("часы SMPTE: кнопка горит", (0x90, 0x35, 127) in cs.sent)
+    cs.sent.clear(); cs.receive_midi((0x90, 0x35, 127)); tick(cs)
+    digits = {m[1]: m[2] for m in cs.sent if len(m) == 3 and m[0] == 0xB0 and 0x40 <= m[1] <= 0x49}
+    expected = {0x49 - i: ord(c) | (0x40 if i in (2, 4, 6) else 0)
+                for i, (c, old) in enumerate(zip("0120304056", "0000102003")) if c != old}
+    check("часы: обратно 012.03.04.056", digits == expected, str(digits))
+
+    # 9i. Режим Input: кольца ручек гаснут корректным сообщением
+    cs.sent.clear(); cs.receive_midi((0x90, 0x28, 127)); tick(cs)
+    bad = [m for m in cs.sent if m[0] != 0xF0 and any(b > 0x7F for b in m[1:])]
+    check("Input: нет байтов больше 127", not bad or not follow, str(bad[:2]))
+    cs.receive_midi((0x90, 0x2A, 127)); tick(cs)
+
     # 10. Отключение
     for s in (cs, xt): s.disconnect()
     check("listener снят", not SONG.view._l.get("selected_track") or all(

@@ -69,6 +69,30 @@ ci.sent.clear(); cs.receive_midi((0x90, 0x18 + 2, 127)); tick()
 check("Select на железе: T7 на стрипе 1", tb.first_track == 7 and H.SONG.view.selected_track is T[7], f"first={tb.first_track}")
 colors = [m for m in ci.sent if m[:6] == H.COLOR_HDR]
 check("цвета реально уходят через настоящий _send_midi", bool(colors) and H.last_colors(types.SimpleNamespace(sent=ci.sent)) == H.expected_colors(T[7:15]))
+
+# Экстендеры поверх настоящего ControlSurface: каждый блок идёт сразу за предыдущим
+base = "Icon_V_and_P_Series_Ableton_Follow"
+extenders = []
+for slot, suffix in enumerate(("_XT1", "_XT2", "_XT3"), 1):
+    c = CInstance(H.SONG); c.instance_identifier = slot
+    x = importlib.import_module(base + suffix).create_instance(c)
+    extenders.append((x, importlib.import_module(base + suffix + ".v1_core.shared_track_buffer").shared, c, slot))
+surfaces = [cs] + [e[0] for e in extenders]
+for s in surfaces:
+    s.connect_script_instances(surfaces)
+def tick_all(n=4):
+    for _ in range(n):
+        for s in surfaces:
+            s.update_display()
+H.SONG.view.selected_track = T[3]; tick_all()
+check("экстендеры: блоки подряд за выбранной", [e[1].first_track for e in extenders] == [11, 19, 27], str([e[1].first_track for e in extenders]))
+check("экстендеры: цвета XT1 = T11..T18", H.last_colors(types.SimpleNamespace(sent=extenders[0][2].sent)) == H.expected_colors(T[11:19]))
+cs.receive_midi((0x90, 0x31, 127)); tick_all()
+check("Bank на основном двигает экстендеры", tb.first_track == 4 and [e[1].first_track for e in extenders] == [12, 20, 28], str([e[1].first_track for e in extenders]))
+extenders[0][0].receive_midi((0x90, 0x18, 127)); tick_all()
+check("Select на экстендере выбирает его дорожку", H.SONG.view.selected_track is T[12] and tb.first_track == 12)
+for x, _, _, _ in extenders:
+    x.disconnect()
 cs.disconnect()
 left = H.leftover_listeners()
 check("disconnect без ошибок, listener'ы сняты", left == 0, str(left))
