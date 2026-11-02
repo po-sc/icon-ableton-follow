@@ -1,0 +1,16 @@
+from ..v1_core.manager_capabilities import button_manager_capabilities
+from ..v1_core.shared_mode_buffer import shared as shared_mode
+
+def _get_handler():
+    mode = (shared_mode.get_mode() or "standard_mode").strip().lower()
+    return button_manager_capabilities.get(mode) or button_manager_capabilities.get("standard_mode")
+
+def _call(method, payload):
+    handler = _get_handler()
+    if handler:
+        fn = getattr(handler, method, None)
+        if fn:
+            fn(payload)
+
+def refresh(payload): _call("refresh", payload)
+def press(payload):   _call("press", payload)

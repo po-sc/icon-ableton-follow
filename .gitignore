@@ -1,12 +1,3 @@
-# Код и файлы iCON в репозиторий не попадают
-orig/
-build/
-*.zip
-*.pdf
-*.p1m-daw
-*.p1n-daw
-*.v1m-daw
 __pycache__/
 *.pyc
-*.log
 .DS_Store
