@@ -293,6 +293,17 @@ def main():
     check("Bank вправо упирается в конец", tb.first_track == len(SONG.visible_tracks) - 1, f"first={tb.first_track}")
     check("последняя дорожка видна", last_colors(cs)[0] == expected_colors(list(SONG.visible_tracks)[-1:])[0])
 
+    # 9g. Часы: цифры и точки как у штатного Mackie, без двоеточий
+    SONG.get_current_beats_song_time = lambda: "12.3.4.056"
+    tick(cs)
+    digits = {}
+    for m in cs.sent:
+        if len(m) == 3 and m[0] == 0xB0 and 0x40 <= m[1] <= 0x49:
+            digits[m[1]] = m[2]
+    expected = {0x49 - i: ord(c) | (0x40 if i in (2, 4, 6) else 0) for i, c in enumerate("0120304056")}
+    check("часы: 012.03.04.056", digits == expected, str(digits))
+    check("часы: нет двоеточий", 0x3A not in digits.values() and 0x7A not in digits.values())
+
     # 10. Отключение
     for s in (cs, xt): s.disconnect()
     check("listener снят", not SONG.view._l.get("selected_track") or all(

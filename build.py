@@ -176,6 +176,24 @@ def patch_package(source, name):
           "    if not LC.only_if_changed(\"row_color_rgb\", rgb7_list):\n"
           "        return\n\n", "")
 
+    # Двоеточие не имеет сегментов и выглядело как чёрточка: формат и точки как у штатного Mackie
+    ck = dst / "v1_handlers" / "standard_clock.py"
+    patch(ck, "    TEXT = FORMAT_TIME(DM, payload) if _MODE == 'time' else BLANK(FORMAT_BARS(DM.SONG(payload)))\n"
+              "    msg = (TEXT or \"\").ljust(10)[:10]\n",
+              "    msg = CLOCK_DIGITS(DM.SMPTE_25(payload) if _MODE == 'time' else DM.SONG(payload).get_current_beats_song_time())\n")
+    patch(ck, "            DM.SEND_DAW(payload, (0xB0, AD.CLOCK_DISPLAY[i], ord(ch) & 0x7F))\n",
+              "            DM.SEND_DAW(payload, (0xB0, AD.CLOCK_DISPLAY[i], (ord(ch) & 0x7F) | (0x40 if i in CLOCK_POINTS else 0)))\n")
+    patch(ck, "# === REFRESH: DAW → HARDWARE\n",
+          "# Hardware layout: 000.00.00.000, a point is bit 0x40 of the digit before it\n"
+          "CLOCK_POINTS = (2, 4, 6)\n"
+          "def CLOCK_DIGITS(t) -> str:\n"
+          "    parts = (str(t).replace(';', ':').replace('.', ':').split(':') + ['0'] * 4)[:4]\n"
+          "    return ''.join(x.strip().zfill(w)[-w:] for x, w in zip(parts, (3, 2, 2, 3)))\n\n"
+          "# === REFRESH: DAW → HARDWARE\n")
+    patch(ck, "    for i, cc in enumerate(AD.CLOCK_DISPLAY): # expects 10 addrs (0x49..0x40)\n",
+          "    _cache[:] = ['\\0'] * 10 # The next script instance must redraw the cleared digits\n"
+          "    for i, cc in enumerate(AD.CLOCK_DISPLAY): # expects 10 addrs (0x49..0x40)\n")
+
     # Добавление и удаление дорожек: держим выбранную, Mute/Solo/Rec не оставляем от старых дорожек
     rf = core / "refresher.py"
     patch(rf, "def handle_structure_change(payload):\n    from . import listener\n",
