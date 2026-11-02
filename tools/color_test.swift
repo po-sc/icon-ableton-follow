@@ -1,9 +1,10 @@
-// color_test: 20 секунд показывает на контроллере 8 цветов и надписи COLOR 1..8,
-// затем всё гасит. Отвечает на вопрос, умеет ли экран показывать цвета дорожек.
-// Перед запуском закрыть Ableton, контроллер переключить на слот DAW 1 (Порт 1).
-// Запуск: swift tools/color_test.swift          (порт "Порт 1")
-//         swift tools/color_test.swift "Port 1"  (другое имя порта)
-//         swift tools/color_test.swift --list    (только показать порты)
+// color_test: 20 секунд показывает на контроллере 8 цветов и надписи P1 CH 1..8, затем всё гасит.
+// Отвечает на вопрос, умеет ли экран показывать цвета дорожек. Шлёт во все порты iCON:
+// цифра после P в надписи покажет, какой порт слушает активный слот контроллера.
+// Перед запуском закрыть Ableton.
+// Запуск: swift tools/color_test.swift            (все порты iCON)
+//         swift tools/color_test.swift "Порт 1"   (только этот порт)
+//         swift tools/color_test.swift --list     (только показать порты)
 import CoreMIDI
 import Foundation
 
@@ -13,15 +14,16 @@ func name(_ e: MIDIEndpointRef) -> String {
     return s?.takeRetainedValue() as String? ?? "?"
 }
 
-let argument = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "Порт 1"
+let argument = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : ""
 let destinations = (0..<MIDIGetNumberOfDestinations()).map { MIDIGetDestination($0) }
 
 if argument == "--list" {
     destinations.forEach { print(name($0)) }
     exit(0)
 }
-guard let target = destinations.first(where: { name($0).contains(argument) && (name($0).contains("P1") || name($0).contains("iCON")) }) else {
-    print("Порт с именем \"\(argument)\" не найден. Есть:")
+let targets = destinations.filter { (name($0).contains("P1") || name($0).contains("iCON")) && (argument.isEmpty || name($0).contains(argument)) }
+guard !targets.isEmpty else {
+    print("Порт iCON \(argument) не найден. Есть:")
     destinations.forEach { print("  " + name($0)) }
     exit(1)
 }
@@ -31,7 +33,7 @@ MIDIClientCreateWithBlock("color_test" as CFString, &client) { _ in }
 var port = MIDIPortRef()
 MIDIOutputPortCreate(client, "out" as CFString, &port)
 
-func send(_ bytes: [UInt8]) {
+func send(_ bytes: [UInt8], to target: MIDIEndpointRef) {
     var list = MIDIPacketList()
     let packet = MIDIPacketListInit(&list)
     _ = MIDIPacketListAdd(&list, MemoryLayout<MIDIPacketList>.size, packet, 0, bytes.count, bytes)
@@ -45,19 +47,27 @@ let colors: [[UInt8]] = [
     [0, 127, 127], [0, 0, 127], [80, 0, 127], [127, 127, 127],
 ]
 
-func show(names: String, rgb: [[UInt8]]) {
-    send(colorHeader + rgb.flatMap { $0 } + [0xF7])
-    send(namesHeader + Array(names.padding(toLength: 56, withPad: " ", startingAt: 0).utf8) + [0xF7])
+// Номер порта для надписи: последняя цифра в имени, "iCON P1-Nano Порт 2" -> 2
+func portNumber(_ target: MIDIEndpointRef) -> String {
+    name(target).last(where: { $0.isNumber }).map(String.init) ?? "?"
 }
 
-print("Отправляю в: \(name(target)). Смотри на экран контроллера 20 секунд.")
-let labels = (1...8).map { "COLOR \($0)" }.joined()
+func show(_ target: MIDIEndpointRef, names: String, rgb: [[UInt8]]) {
+    send(colorHeader + rgb.flatMap { $0 } + [0xF7], to: target)
+    send(namesHeader + Array(names.padding(toLength: 56, withPad: " ", startingAt: 0).utf8) + [0xF7], to: target)
+}
+
+print("Отправляю в: \(targets.map(name).joined(separator: ", ")). Смотри на экран контроллера 20 секунд.")
 for _ in 0..<80 {
-    show(names: labels, rgb: colors)
+    for target in targets {
+        show(target, names: (1...8).map { "P\(portNumber(target)) CH \($0)" }.joined(), rgb: colors)
+    }
     Thread.sleep(forTimeInterval: 0.25)
 }
-show(names: "", rgb: Array(repeating: [0, 0, 0], count: 8))
+for target in targets {
+    show(target, names: "", rgb: Array(repeating: [0, 0, 0], count: 8))
+}
 print("Готово, экран очищен.")
-print("Есть надписи и цвета: цвета поддерживаются.")
-print("Есть только надписи: связь есть, а цвета этот экран не показывает.")
-print("Нет ничего: контроллер не на слоте DAW 1 или экран не отвечает на эти команды.")
+print("Надписи и цвета: экран показывает цвета.")
+print("Только надписи: связь есть, но цветов нет. Возможно, так устроен этот экран или нужна другая прошивка.")
+print("Ничего: контроллер не в DAW-режиме или экран не принимает эти команды.")
