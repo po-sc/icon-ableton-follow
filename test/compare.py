@@ -109,27 +109,15 @@ class Song(H.Song):
         if name in ("cue_points", "scenes"):
             return ()
         def call(*a, **k):
-            self.calls.append(name)
+            self.calls.append(f"{name}{a}")
         return call
-
-class Recorder:
-    """Методы вида Live, которых нет в макете"""
-    def __init__(self, target, song):
-        self.__dict__.update(_t=target, _s=song)
-    def __getattr__(self, name):
-        try:
-            return getattr(self._t, name)
-        except AttributeError:
-            def call(*a, **k):
-                self._s.calls.append(name)
-            return call
 
 def run(root, base, cfg, seed, steps):
     rnd = random.Random(seed)
     H.install_stubs()
     song = Song(rnd.randint(9, 40)); H.SONG = song
     for name in ("show_view", "hide_view", "focus_view", "scroll_view", "zoom_view"):
-        setattr(H.AppView, name, lambda self, *a, n=name: song.calls.append(n))
+        setattr(H.AppView, name, lambda self, *a, n=name: song.calls.append(f"{n}{a}"))
     H.SongView.selected_scene = None
     H.SongView.selected_parameter = None
     H.SongView.detail_clip = None
@@ -159,7 +147,8 @@ def run(root, base, cfg, seed, steps):
                 mods["refresher"].on_bank_changed(mods["payload"].build_payload(ctrl_surface=cs))
 
     # Сначала каждый контрол каждого блока по одному разу, потом случайные действия
-    queue = [(u, c) for u in units for c in models[u[3]]]
+    common = [("note", 0, n) for n in range(128)] + [("cc", 0, n) for n in list(range(0x10, 0x18)) + [0x3C]] + [("pitch", c, 0) for c in range(9)]
+    queue = [(u, c) for u in units for c in sorted(set(common) | set(models[u[3]]))]
     steps += len(queue)
 
     def act():
@@ -181,7 +170,7 @@ def run(root, base, cfg, seed, steps):
                 cs.receive_midi((0xB0 + ch, value, rnd.choice((1, 3, 65, 67))))
             else:
                 cs.receive_midi((0xE0 + ch, rnd.randrange(128), rnd.randrange(128)))
-            return f"imap {u[3]} {kind} ch{ch} {value:#x}"
+            return f"control {u[3]} {kind} ch{ch} {value:#x}"
         if r < .55:
             note = rnd.randrange(128)
             if note in BANK:
